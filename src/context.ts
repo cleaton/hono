@@ -44,6 +44,7 @@ export interface Context<
   body: (data: Data | null, status?: StatusCode, headers?: Headers) => Response
   text: (text: string, status?: StatusCode, headers?: Headers) => Response
   json: <T>(object: T, status?: StatusCode, headers?: Headers) => Response
+  jsonT<T>(object: T): {format: 'json', data: T}
   html: (html: string, status?: StatusCode, headers?: Headers) => Response
   redirect: (location: string, status?: StatusCode) => Response
   cookie: (name: string, value: string, options?: CookieOptions) => void
@@ -214,6 +215,10 @@ export class HonoContext<
       : JSON.stringify(object)
     headers['content-type'] = 'application/json; charset=UTF-8'
     return this.body(body, status, headers)
+  }
+
+  jsonT<T>(object: T): {format: 'json', data: T} {
+    return {format: 'json', data: object}
   }
 
   html(html: string, status: StatusCode = this._status, headers: Headers = {}): Response {

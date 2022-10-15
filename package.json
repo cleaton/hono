@@ -17,6 +17,7 @@
     "lint:fix": "eslint --ext js,ts src .eslintrc.js --fix",
     "denoify": "rimraf deno_dist && denoify && rimraf 'deno_dist/**/*.test.ts'",
     "build": "rimraf dist && tsc --project tsconfig.build.json && tsc --project tsconfig.build.cjs.json",
+    "prepare": "rimraf dist && tsc --project tsconfig.build.json && tsc --project tsconfig.build.cjs.json",
     "watch": "tsc --project tsconfig.build.json -w",
     "prerelease": "yarn denoify && yarn test:deno && yarn build",
     "release": "np"

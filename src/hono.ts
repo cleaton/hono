@@ -31,6 +31,17 @@ export type Handler<
   next: Next
 ) => Response | Promise<Response> | Promise<void> | Promise<Response | undefined>
 
+
+export type HandlerT<
+  RequestParamKeyType extends string = string,
+  E extends Partial<Environment> = Environment,
+  D extends ValidatedData = ValidatedData,
+  T = any
+> = (
+  c: Context<RequestParamKeyType, E, D>,
+  next: Next
+) => {format: 'json', data: T} | Promise<{format: 'json', data: T}>
+
 export type MiddlewareHandler = <E extends Partial<Environment> = Environment>(
   c: Context<string, E>,
   next: Next
@@ -59,6 +70,21 @@ type ParamKey<Component> = Component extends `:${infer NameWithPattern}`
 type ParamKeys<Path> = Path extends `${infer Component}/${infer Rest}`
   ? ParamKey<Component> | ParamKeys<Rest>
   : ParamKey<Path>
+
+type ParamArgName<NameWithPattern> = NameWithPattern extends `${infer Name}{${infer _Pattern}`
+  ? {[key in Name]: string}
+  : NameWithPattern extends string ? {[key in NameWithPattern]: string} : {}
+
+type ParamArg<Component> = Component extends `:${infer NameWithPattern}`
+? ParamArgName<NameWithPattern>
+: {}
+
+type ParamArgs<Path> =
+  Path extends never
+  ? {}
+  : Path extends `${infer Component}/${infer Rest}`
+  ? ParamArg<Component> & ParamArgs<Rest>
+  : ParamArg<Path>
 
 interface HandlerInterface<T extends string, E extends Partial<Environment>, U = Hono<E, T>> {
   // app.get(handler...)
@@ -91,6 +117,34 @@ interface Route<
   path: string
   method: string
   handler: Handler<string, E, D>
+}
+
+class RoutesBuilder<
+E extends Partial<Environment>,
+D extends ValidatedData,
+J extends string,
+H extends Hono<E, J, D>,
+B extends Record<string, any>,
+> {
+  constructor(private hono: H, private prevR: B) {}
+
+  post<T, P extends string, Par extends ParamKeys<P> extends never ? string : ParamKeys<P>>(path: P, handler: HandlerT<Par, E, D, T>, middlewares: Handler<Par, E, D>[] = []) {
+    const h: Handler<Par, E, D> = async (c, ...t) => {
+      const r = await handler(c, ...t)
+      if (r.format === 'json') {
+        return c.json(r.data)
+      }
+    }
+    this.hono.post(path, ...[...middlewares, h])
+    const l = Object.keys(this.prevR).length
+    const r = (l ? {...this.prevR, [path]: {} as T} : {[path]: {} as T}) as B & {[key in  P]: {post: (patharg: ParamArgs<P>) => T}}
+    const r2: RoutesBuilder<E, D, J, H, typeof r> = new RoutesBuilder(this.hono, r)
+    return r2
+  }
+
+  build() {
+    return this.prevR
+  }
 }
 
 export class Hono<
@@ -143,6 +197,10 @@ export class Hono<
     console.trace(err.message)
     const message = 'Internal Server Error'
     return c.text(message, 500)
+  }
+
+  factory() {
+    return new RoutesBuilder<E, D, P, typeof this, {}>(this, {})
   }
 
   route(path: string, app?: Hono<any>): Hono<E, P, D> {
