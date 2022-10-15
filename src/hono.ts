@@ -120,25 +120,22 @@ interface Route<
 }
 
 class RoutesBuilder<
-E extends Partial<Environment>,
-D extends ValidatedData,
-J extends string,
-H extends Hono<E, J, D>,
-B extends Record<string, any>,
+B extends Record<string, any> = Record<string, any>,
+E extends Partial<Environment> = Environment,
 > {
-  constructor(private hono: H, private prevR: B) {}
+  constructor(private hono: Hono, private prevR: B) {}
 
-  post<T, P extends string, Par extends ParamKeys<P> extends never ? string : ParamKeys<P>>(path: P, handler: HandlerT<Par, E, D, T>, middlewares: Handler<Par, E, D>[] = []) {
-    const h: Handler<Par, E, D> = async (c, ...t) => {
+  post<T, I extends ValidatedData, P extends string, Par extends ParamKeys<P> extends never ? string : ParamKeys<P>>(path: P, middlewares: Handler<string, E, I>[], handler: HandlerT<Par, E, I, T>) {
+    const h: Handler<string, E, I> = async (c, ...t) => {
       const r = await handler(c, ...t)
       if (r.format === 'json') {
         return c.json(r.data)
       }
     }
-    this.hono.post(path, ...[...middlewares, h])
+    this.hono.post<string, I>(path, ...middlewares, h)
     const l = Object.keys(this.prevR).length
-    const r = (l ? {...this.prevR, [path]: {} as T} : {[path]: {} as T}) as B & {[key in  P]: {post: (patharg: ParamArgs<P>) => T}}
-    const r2: RoutesBuilder<E, D, J, H, typeof r> = new RoutesBuilder(this.hono, r)
+    const r = (l ? {...this.prevR, [path]: {} as T} : {[path]: {} as T}) as B & {[key in  P]: {post: (patharg: ParamArgs<P>, bodyArgs: I) => T}}
+    const r2: RoutesBuilder<typeof r> = new RoutesBuilder(this.hono, r)
     return r2
   }
 
@@ -200,7 +197,7 @@ export class Hono<
   }
 
   factory() {
-    return new RoutesBuilder<E, D, P, typeof this, {}>(this, {})
+    return new RoutesBuilder<{},E>(this, {})
   }
 
   route(path: string, app?: Hono<any>): Hono<E, P, D> {
