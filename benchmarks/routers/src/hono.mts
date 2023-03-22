@@ -1,5 +1,6 @@
 import type { Router } from '../../../src/router.ts'
 import { RegExpRouter } from '../../../src/router/reg-exp-router/index.ts'
+import { RegExpRouterUpdated } from '../../../src/router/reg-exp-router-updated/index.ts'
 import { TrieRouter } from '../../../src/router/trie-router/index.ts'
 import type { RouterInterface } from './tool.mts'
 import { routes, handler } from './tool.mts'
@@ -7,6 +8,9 @@ import { routes, handler } from './tool.mts'
 const createHonoRouter = (name: string, router: Router<unknown>): RouterInterface => {
   for (const route of routes) {
     router.add(route.method, route.path, handler)
+  }
+  if (typeof (router as any).freeze === 'function') {
+    (router as any).freeze()
   }
   return {
     name: `Hono ${name}`,
@@ -18,3 +22,4 @@ const createHonoRouter = (name: string, router: Router<unknown>): RouterInterfac
 
 export const regExpRouter = createHonoRouter('RegExpRouter', new RegExpRouter())
 export const trieRouter = createHonoRouter('TrieRouter', new TrieRouter())
+export const regExpRouterUpdated = createHonoRouter('RegExpRouterUpdated', new RegExpRouterUpdated())

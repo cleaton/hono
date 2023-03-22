@@ -1,7 +1,7 @@
 import { run, bench, group } from 'mitata'
 import { expressRouter } from './express.mts'
 import { findMyWayRouter } from './find-my-way.mts'
-import { regExpRouter, trieRouter } from './hono.mts'
+import { regExpRouter, trieRouter, regExpRouterUpdated } from './hono.mts'
 import { koaRouter } from './koa-router.mts'
 import { koaTreeRouter } from './koa-tree-router.mts'
 import { medleyRouter } from './medley-router.mts'
@@ -9,6 +9,7 @@ import type { Route, RouterInterface } from './tool.mts'
 import { trekRouter } from './trek-router.mts'
 
 const routers: RouterInterface[] = [
+  regExpRouterUpdated,
   regExpRouter,
   trieRouter,
   medleyRouter,
